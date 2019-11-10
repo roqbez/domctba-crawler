@@ -1,0 +1,9 @@
+target/
+.settings
+.project
+.classpath
+**.class
+rebel.xml
+.tern-project
+**/src/main/resources/META-INF/beans.xml
+dependency-reduced-pom.xml
