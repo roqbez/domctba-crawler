@@ -1,4 +1,4 @@
-package br.com.roxs.domctba.crawler;
+package br.com.roxs.domctba.crawler.util;
 
 import java.io.File;
 import java.io.IOException;
@@ -52,7 +52,7 @@ public abstract class Util {
 		httpClient = createHttpClient();
 	}
 
-	protected static CloseableHttpClient createHttpClient() {
+	public static CloseableHttpClient createHttpClient() {
 
 		RequestConfig globalConfig = RequestConfig.custom() //
 				.setCookieSpec(CookieSpecs.STANDARD) //

@@ -2,7 +2,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>br.com.roxs</groupId>
 	<artifactId>domctba-crawler</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.1.9.RELEASE</version>
+		<relativePath />
+	</parent>
 
 	<repositories>
 		<repository>
@@ -16,9 +23,80 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
+
+		<jsf.version>2.3.9</jsf.version>
+		<primefaces.version>6.2.13</primefaces.version>
+		<joinfaces.version>4.0.2</joinfaces.version>
+
+		<lucene.version>8.3.0</lucene.version>
+
+		<docker.deploy.baseimage>docker-repo.sistemas.ufsc.br/ufsc/oracle-java:8u192.018</docker.deploy.baseimage>
+
 	</properties>
 
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.joinfaces</groupId>
+				<artifactId>joinfaces-dependencies</artifactId>
+				<version>${joinfaces.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.joinfaces</groupId>
+			<artifactId>omnifaces3-spring-boot-starter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.joinfaces</groupId>
+			<artifactId>primefaces-spring-boot-starter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.glassfish</groupId>
+			<artifactId>javax.faces</artifactId>
+			<version>${jsf.version}</version><!--$NO-MVN-MAN-VER$ -->
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.primefaces</groupId>
+			<artifactId>primefaces</artifactId>
+			<version>${primefaces.version}</version><!--$NO-MVN-MAN-VER$ -->
+		</dependency>
+		<dependency>
+			<groupId>org.primefaces.extensions</groupId>
+			<artifactId>primefaces-extensions</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.primefaces</groupId>
+					<artifactId>primefaces</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.primefaces.extensions</groupId>
+			<artifactId>resources-ckeditor</artifactId>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.primefaces.themes</groupId>
+			<artifactId>bootstrap</artifactId>
+			<version>1.0.10</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
@@ -27,7 +105,6 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.5.3</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tika</groupId>
@@ -37,18 +114,18 @@
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
-			<version>8.3.0</version>
+			<version>${lucene.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-analyzers-common</artifactId>
-			<version>8.3.0</version>
+			<version>${lucene.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-queryparser</artifactId>
-			<version>8.3.0</version>
+			<version>${lucene.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jai-imageio</groupId>
@@ -63,7 +140,6 @@
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.28.0</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-io</groupId>
@@ -73,14 +149,143 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.29</version>
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>2.6</version><!--$NO-MVN-MAN-VER$ -->
+				<executions>
+					<execution>
+						<id>copy-web-resources</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${basedir}/target/classes/META-INF/resources</outputDirectory>
+							<resources>
+								<resource>
+									<directory>src/main/webapp</directory>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<requiresUnpack>
+						<dependency>
+							<groupId>org.omnifaces</groupId>
+							<artifactId>omnifaces</artifactId>
+						</dependency>
+					</requiresUnpack>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.joinfaces</groupId>
+				<artifactId>joinfaces-maven-plugin</artifactId>
+			</plugin>
+
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<inherited>true</inherited>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.28.0</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>stop</goal>
+							<goal>build</goal>
+							<goal>start</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<dockerHost>${docker.deploy.url}</dockerHost>
+					<authConfig>
+						<username>${docker.deploy.registry.username}</username>
+						<password>${docker.deploy.registry.password}</password>
+					</authConfig>
+					<images>
+						<image>
+							<alias>${project.artifactId}</alias>
+							<name>${project.name}:${project.version}</name>
+							<build>
+								<from>${docker.deploy.baseimage}</from>
+								<tags>
+									<tag>latest</tag>
+								</tags>
+								<workdir>/app</workdir>
+								<assembly>
+									<name>app</name>
+									<mode>dir</mode>
+									<inline>
+										<includeBaseDirectory>false</includeBaseDirectory>
+										<dependencySets>
+											<dependencySet>
+												<useProjectArtifact>true</useProjectArtifact>
+												<includes>
+													<include>${project.groupId}:${project.artifactId}</include>
+												</includes>
+												<outputFileNameMapping>${project.build.finalName}.${artifact.extension}</outputFileNameMapping>
+											</dependencySet>
+										</dependencySets>
+									</inline>
+								</assembly>
+								<optimise>true</optimise>
+								<cmd>
+									<shell>java -jar $(java-mem-opts.sh) $(java-extra-opts.sh) -Dspring.profiles.active=prod /app/${project.build.finalName}.jar</shell>
+								</cmd>
+							</build>
+							<run>
+								<hostname>${project.artifactId}</hostname>
+								<labels>
+									<version>${project.version}</version>
+									<version>latest</version>
+								</labels>
+								<namingStrategy>alias</namingStrategy>
+								<restartPolicy>
+									<name>always</name>
+								</restartPolicy>
+								<network>
+									<name>net</name>
+								</network>
+								<memory>1073741824</memory>
+								<volumes>
+									<bind>/var/run/docker.sock:/var/run/docker.sock</bind>
+									<bind>domctba-crawler-data:/domctba-crawler-data</bind>
+								</volumes>
+								<ports>
+									<port>18081:18081</port>
+								</ports>
+							</run>
+						</image>
+					</images>
+				</configuration>
+			</plugin>
+		</plugins>
+
+	</build>
 
 </project>

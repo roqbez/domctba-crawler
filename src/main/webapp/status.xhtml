@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:h="http://java.sun.com/jsf/html" xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:ui="http://java.sun.com/jsf/facelets" xmlns:p="http://primefaces.org/ui">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+</head>
+
+<ui:composition>
+	<script type="text/javascript">
+		//<![CDATA[
+
+		function iniciarAjaxStatusGlobal() {
+			try {
+				if (window.painelStatusNaoModal) {
+					window.painelStatusNaoModal = false;
+				} else {
+					PF('vpanelLoading').show();
+				}
+			} catch (e) {
+			}
+		}
+
+		function pararAjaxStatusGlobal() {
+			try {
+				PF('vpanelLoading').hide();
+			} catch (e) {
+			}
+		}
+		//]]>
+	</script>
+
+	<p:ajaxStatus onstart="iniciarAjaxStatusGlobal();" oncomplete="pararAjaxStatusGlobal();" />
+
+	<style type="text/css">
+#panelLoading_modal {
+	border-radius: 0px;
+	background: none;
+	background-color: transparent;
+	filter: alpha(opacity = 0);
+	opacity: 0.0;
+	width: 100% !important;
+}
+
+#panelLoading {
+	padding: 0px;
+	border-width: 0px !important;
+	border-radius: 0px;
+	border-image-width: 0px;
+}
+
+#panelLoading div.ui-dialog-content {
+	padding: 0px;
+}
+
+#progressBar {
+	border-width: 0px !important;
+	border-radius: 0px !important;
+}
+
+#progressBar .ui-progressbar.ui-widget-content {
+	border-radius: 0px !important;
+}
+</style>
+
+	<p:dialog header="Aguarde..." modal="true" draggable="false" resizable="false" closable="false" widgetVar="vpanelLoading" id="panelLoading"
+		position="left,top" showHeader="false" style="background-color: transparent; border-width: 0px" width="100%">
+		<p:progressBar id="progressBar" widgetVar="pbBar" style="height:6px" mode="indeterminate" />
+	</p:dialog>
+
+</ui:composition>
+
+</html>

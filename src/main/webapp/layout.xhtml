@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:h="http://xmlns.jcp.org/jsf/html" xmlns:f="http://xmlns.jcp.org/jsf/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets" xmlns:p="http://primefaces.org/ui">
+<f:view>
+	<h:head>
+		<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<h:outputScript library="js" name="commons.js" />
+		<h:outputStylesheet library="css" name="default.css" />
+		<ui:insert name="head" />
+		<title>Consulta Diário Oficial - Município de Curitiba</title>
+	</h:head>
+
+	<ui:insert name="status">
+		<ui:include src="/status.xhtml" />
+	</ui:insert>
+
+	<h:body>
+		<div class="ui-g">
+			<div class="ui-g-12">
+				<ui:insert name="titleHeader">
+					<span class="titleText"> <ui:insert name="title" />
+					</span>
+					<br />
+					<br />
+				</ui:insert>
+
+				<ui:insert name="content" />
+			</div>
+		</div>
+
+		<p:dialog id="panelMessages" widgetVar="vpanelMessages" header="Aviso" modal="true" draggable="false" resizable="false" closable="true"
+			closeOnEscape="true">
+
+			<p:outputPanel id="mesgPanel">
+				<p:autoUpdate />
+
+				<div id="messagesDiv">
+					<h:messages layout="table" errorClass="mesgErro" fatalClass="mesgErro" infoClass="mesgInfo" warnClass="mesgWarn" />
+				</div>
+
+
+				<h:outputText id="systemErrorMessages" value="&nbsp;" escape="false" rendered="#{facesContext.maximumSeverity.ordinal >= 2}" />
+
+				<h:outputText id="hasMessages" value="&nbsp;" escape="false" rendered="#{facesContext.maximumSeverity.ordinal >= 0}" />
+			</p:outputPanel>
+
+			<div align="center" style="margin-bottom: 8px;">
+				<button type="button" id="panelMessagesOkBtn" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+					style="width: 50px; text-align: center; padding: 3px 12px;" onclick="PF('vpanelMessages').hide();">OK</button>
+			</div>
+
+		</p:dialog>
+
+		<p:outputPanel>
+			<p:autoUpdate />
+			<script type="text/javascript">
+				//<![CDATA[
+				$(function() {
+					if (document
+							.getElementById('#{p:component("hasMessages")}') != null) {
+						try {
+							PF('vpanelMessages').show();
+							PF('vpanelMessages').initPosition();
+						} catch (e) {
+						}
+					}
+				});
+				//]]>
+			</script>
+		</p:outputPanel>
+	</h:body>
+</f:view>
+</html>
