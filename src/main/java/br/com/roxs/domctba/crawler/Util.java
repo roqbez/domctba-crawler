@@ -1,15 +1,12 @@
 package br.com.roxs.domctba.crawler;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -27,11 +24,11 @@ import java.util.Map.Entry;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -157,75 +154,92 @@ public abstract class Util {
 
 		HttpPost post = new HttpPost(url);
 
-		List<NameValuePair> pairs = new ArrayList<NameValuePair>();
+		try {
 
-		if (params != null) {
-			for (Entry<String, String> e : params.entrySet())
-				pairs.add(new BasicNameValuePair(e.getKey(), e.getValue()));
+			List<NameValuePair> pairs = new ArrayList<NameValuePair>();
 
-			post.setEntity(new UrlEncodedFormEntity(pairs));
-		}
+			if (params != null) {
+				for (Entry<String, String> e : params.entrySet())
+					pairs.add(new BasicNameValuePair(e.getKey(), e.getValue()));
 
-		if (referer != null)
-			post.setHeader("Referer", referer);
-
-		if (headers != null) {
-			for (Entry<String, String> e : headers.entrySet()) {
-				post.setHeader(e.getKey(), e.getValue());
+				post.setEntity(new UrlEncodedFormEntity(pairs));
 			}
-		}
 
-		if (context != null)
-			response = getTextFromHttpMethod(getHttpClient().execute(post, context));
-		else
-			response = getTextFromHttpMethod(getHttpClient().execute(post));
+			if (referer != null)
+				post.setHeader("Referer", referer);
 
-		return response;
-	}
-
-	public static void downloadFile(String downloadUrl, File destFile) throws Exception {
-
-		URL u = new URL(downloadUrl);
-		HttpURLConnection conn = (HttpURLConnection) u.openConnection();
-		conn.setDoInput(true);
-
-		byte[] buffer = new byte[4096];
-
-		int responseCode = conn.getResponseCode();
-
-		if (responseCode != 200) {
-			InputStream in = conn.getErrorStream() != null ? conn.getErrorStream() : conn.getInputStream();
-			throw new RuntimeException(IOUtils.toString(in, StandardCharsets.UTF_8));
-		}
-
-		try (OutputStream out = new FileOutputStream(destFile)) {
-			try (InputStream in = conn.getInputStream()) {
-				int n = 0;
-				while (-1 != (n = in.read(buffer))) {
-					out.write(buffer, 0, n);
+			if (headers != null) {
+				for (Entry<String, String> e : headers.entrySet()) {
+					post.setHeader(e.getKey(), e.getValue());
 				}
 			}
+
+			if (context != null)
+				response = getTextFromHttpMethod(getHttpClient().execute(post, context));
+			else
+				response = getTextFromHttpMethod(getHttpClient().execute(post));
+
+			return response;
+
 		} finally {
-			conn.disconnect();
+			post.reset();
 		}
 
+	}
+
+	public static boolean download(String url, HttpContext context, OutputStream out) throws Exception {
+		return download(getHttpClient(), url, context, out);
+	}
+
+	public static boolean download(HttpClient httpClient, String url, OutputStream out) throws Exception {
+		return download(httpClient, url, null, out);
+	}
+
+	public static boolean download(HttpClient httpClient, String url, HttpContext context, OutputStream out) throws Exception {
+
+		HttpGet get = new HttpGet(url);
+
+		try {
+			CloseableHttpResponse resp = null;
+
+			if (context != null) {
+				resp = (CloseableHttpResponse) httpClient.execute(get, context);
+			} else
+				resp = (CloseableHttpResponse) httpClient.execute(get);
+
+			if (resp.getStatusLine().getStatusCode() == 200) {
+				resp.getEntity().writeTo(out);
+				return true;
+			}
+
+			return false;
+
+		} finally {
+			get.reset();
+		}
 	}
 
 	public static HttpResponse getHttpResponse(String url, HttpContext context) throws Exception {
 
 		HttpGet get = new HttpGet(url);
 
-		CloseableHttpResponse resp = null;
-
-		if (context != null)
-			resp = getHttpClient().execute(get, context);
-		else
-			resp = getHttpClient().execute(get);
-
 		try {
-			return resp;
+
+			CloseableHttpResponse resp = null;
+
+			if (context != null)
+				resp = getHttpClient().execute(get, context);
+			else
+				resp = getHttpClient().execute(get);
+
+			try {
+				return resp;
+			} finally {
+				resp.close();
+			}
+
 		} finally {
-			resp.close();
+			get.reset();
 		}
 	}
 
@@ -233,10 +247,16 @@ public abstract class Util {
 
 		HttpGet get = new HttpGet(url);
 
-		if (context != null)
-			return getTextFromHttpMethod(getHttpClient().execute(get, context));
-		else
-			return getTextFromHttpMethod(getHttpClient().execute(get));
+		try {
+
+			if (context != null)
+				return getTextFromHttpMethod(getHttpClient().execute(get, context));
+			else
+				return getTextFromHttpMethod(getHttpClient().execute(get));
+
+		} finally {
+			get.reset();
+		}
 
 	}
 
@@ -244,22 +264,33 @@ public abstract class Util {
 
 		HttpGet get = new HttpGet(url);
 
-		get.setHeader("User-Agent", userAgent);
+		try {
 
-		if (context != null)
-			return getTextFromHttpMethod(getHttpClient().execute(get, context));
-		else
-			return getTextFromHttpMethod(getHttpClient().execute(get));
+			get.setHeader("User-Agent", userAgent);
+
+			if (context != null)
+				return getTextFromHttpMethod(getHttpClient().execute(get, context));
+			else
+				return getTextFromHttpMethod(getHttpClient().execute(get));
+
+		} finally {
+			get.reset();
+		}
 
 	}
 
 	public static String get(String url, String authorization) throws HttpException, IOException {
 		HttpGet get = new HttpGet(url);
 
-		if (authorization != null)
-			get.setHeader("Authorization", authorization);
+		try {
+			if (authorization != null)
+				get.setHeader("Authorization", authorization);
 
-		return getTextFromHttpMethod(getHttpClient().execute(get));
+			return getTextFromHttpMethod(getHttpClient().execute(get));
+
+		} finally {
+			get.reset();
+		}
 	}
 
 	private static String getTextFromHttpMethod(CloseableHttpResponse response) {
