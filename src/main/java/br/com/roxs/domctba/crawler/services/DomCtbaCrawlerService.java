@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,9 +21,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.analysis.core.LowerCaseFilter;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
@@ -61,8 +66,6 @@ public class DomCtbaCrawlerService {
 
 	private static final Logger logger = LoggerFactory.getLogger(DomCtbaCrawlerService.class);
 
-	private static final StandardAnalyzer STANDARD_ANALYZER = new StandardAnalyzer();
-
 	@Value("${data.dir}")
 	private String dataDir;
 
@@ -74,12 +77,14 @@ public class DomCtbaCrawlerService {
 
 	private File luceneDir;
 
-	private static final Tika tika = new Tika();
+	private final Tika tika = new Tika();
+
+	private Analyzer luceneAnalyzer;
 
 	private AtomicBoolean verificando = new AtomicBoolean();
 
 	@PostConstruct
-	public void setup() {
+	public void setup() throws Exception {
 
 		downloadDir = new File(new File(dataDir), "diarios_oficiais");
 
@@ -89,13 +94,19 @@ public class DomCtbaCrawlerService {
 		luceneDir.mkdirs();
 
 		tika.setMaxStringLength(-1);
+
+		luceneAnalyzer = new AccentInsensitiveAnalyzer();
 	}
 
 	@Scheduled(cron = "0 0 18 * * *")
-	public void verificarEdicoesDiarioOficial() throws Exception {
+	public List<EdicaoDiarioOficial> verificarEdicoesDiarioOficial() throws Exception {
 		if (!verificando.get()) {
 			logger.info("Verificando novas edições do DOM");
-			getEdicoesDiarioOficial();
+			List<EdicaoDiarioOficial> edicoes = getEdicoesDiarioOficial();
+			indexarDiarios(edicoes);
+			return edicoes;
+		} else {
+			return Collections.emptyList();
 		}
 	}
 
@@ -205,7 +216,7 @@ public class DomCtbaCrawlerService {
 		}
 	}
 
-	private static void indexarDiario(IndexWriter indexWriter, EdicaoDiarioOficial diario) throws Exception {
+	private void indexarDiario(IndexWriter indexWriter, EdicaoDiarioOficial diario) throws Exception {
 
 		org.apache.lucene.document.Document doc = new org.apache.lucene.document.Document();
 
@@ -236,7 +247,7 @@ public class DomCtbaCrawlerService {
 		try {
 			IndexSearcher searcher = new IndexSearcher(reader);
 
-			Query q = StringUtils.isEmpty(query) ? new MatchAllDocsQuery() : new QueryParser("conteudo", STANDARD_ANALYZER).parse(query);
+			Query q = StringUtils.isEmpty(query) ? new MatchAllDocsQuery() : new QueryParser("conteudo", luceneAnalyzer).parse(query);
 
 			TopDocs docs = searcher.search(q, Integer.MAX_VALUE);
 
@@ -244,7 +255,7 @@ public class DomCtbaCrawlerService {
 
 				org.apache.lucene.document.Document d = searcher.doc(hit.doc);
 
-				String filename = d.getField("nome").stringValue();
+				String filename = d.getField("arquivo").stringValue();
 
 				edicoes.add(getEdicaoDiarioOficial(new File(downloadDir, filename)));
 			}
@@ -262,9 +273,9 @@ public class DomCtbaCrawlerService {
 
 		Map<String, Analyzer> analyzerMap = new HashMap<>();
 		analyzerMap.put("nome", new KeywordAnalyzer());
-		analyzerMap.put("conteudo", STANDARD_ANALYZER);
+		analyzerMap.put("conteudo", luceneAnalyzer);
 
-		PerFieldAnalyzerWrapper wrapper = new PerFieldAnalyzerWrapper(STANDARD_ANALYZER, analyzerMap);
+		PerFieldAnalyzerWrapper wrapper = new PerFieldAnalyzerWrapper(luceneAnalyzer, analyzerMap);
 
 		IndexWriterConfig conf = new IndexWriterConfig(wrapper);
 
@@ -283,7 +294,7 @@ public class DomCtbaCrawlerService {
 		try {
 			IndexSearcher searcher = new IndexSearcher(reader);
 
-			TopDocs docs = searcher.search(new TermQuery(new Term("nome", file.getName())), 1);
+			TopDocs docs = searcher.search(new TermQuery(new Term("arquivo", file.getName())), 1);
 
 			return docs.scoreDocs.length > 0;
 
@@ -366,16 +377,16 @@ public class DomCtbaCrawlerService {
 		return null;
 	}
 
-	private EdicaoDiarioOficial getEdicaoDiarioOficial(File file) throws ParseException {
+	private EdicaoDiarioOficial getEdicaoDiarioOficial(File file) throws Exception {
 
 		EdicaoDiarioOficial edicaoDOM = new EdicaoDiarioOficial();
 
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 
-		String[] s = file.getName().replaceAll("\\.pdf", "").split(" - ");
+		String filename = file.getName().replaceAll("\\.pdf", "");
 
-		edicaoDOM.setData(df.parse(s[0]));
-		edicaoDOM.setNome(s[1]);
+		edicaoDOM.setData(df.parse(filename.substring(0, 10).trim()));
+		edicaoDOM.setNome(filename.substring(13).trim());
 		edicaoDOM.setArquivo(file);
 
 		return edicaoDOM;
@@ -403,4 +414,35 @@ public class DomCtbaCrawlerService {
 		}
 	}
 
+	private class AccentInsensitiveAnalyzer extends StopwordAnalyzerBase {
+
+		public static final int DEFAULT_MAX_TOKEN_LENGTH = 255;
+
+		private int maxTokenLength = DEFAULT_MAX_TOKEN_LENGTH;
+
+		public AccentInsensitiveAnalyzer(CharArraySet stopWords) {
+			super(stopWords);
+		}
+
+		public AccentInsensitiveAnalyzer() {
+			this(CharArraySet.EMPTY_SET);
+		}
+
+		@Override
+		protected TokenStreamComponents createComponents(final String fieldName) {
+			final StandardTokenizer src = new StandardTokenizer();
+			src.setMaxTokenLength(maxTokenLength);
+			TokenStream tok = new LowerCaseFilter(src);
+			tok = new StopFilter(tok, stopwords);
+			return new TokenStreamComponents(r -> {
+				src.setMaxTokenLength(AccentInsensitiveAnalyzer.this.maxTokenLength);
+				src.setReader(r);
+			}, tok);
+		}
+
+		@Override
+		protected TokenStream normalize(String fieldName, TokenStream in) {
+			return new ASCIIFoldingFilter(new LowerCaseFilter(in));
+		}
+	}
 }
