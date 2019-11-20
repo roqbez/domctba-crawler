@@ -39,11 +39,12 @@ public class DiarioOficialBean {
 	}
 
 	public List<EdicaoDiarioOficial> pesquisar() throws Exception {
-		return edicoes = service.pesquisarDiarios((String) params.get("query"));
+		edicoes = service.pesquisarDiarios((String) params.get("query"));
+		return edicoes;
 	}
 
-	public void download(EdicaoDiarioOficial edicao) throws Exception {
-		downloadFile(edicao.getArquivo(), "application/pdf");
+	public void download(File file) throws Exception {
+		downloadFile(file, "application/pdf");
 	}
 
 	public void verificarEdicoesDiarioOficial() throws Exception {

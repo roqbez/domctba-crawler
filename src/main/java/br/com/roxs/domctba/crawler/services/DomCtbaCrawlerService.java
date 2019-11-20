@@ -24,7 +24,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.StopwordAnalyzerBase;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
@@ -272,7 +271,6 @@ public class DomCtbaCrawlerService {
 	private IndexWriter openIndexWriter() throws IOException {
 
 		Map<String, Analyzer> analyzerMap = new HashMap<>();
-		analyzerMap.put("nome", new KeywordAnalyzer());
 		analyzerMap.put("conteudo", luceneAnalyzer);
 
 		PerFieldAnalyzerWrapper wrapper = new PerFieldAnalyzerWrapper(luceneAnalyzer, analyzerMap);
@@ -431,8 +429,7 @@ public class DomCtbaCrawlerService {
 		@Override
 		protected TokenStreamComponents createComponents(final String fieldName) {
 			final StandardTokenizer src = new StandardTokenizer();
-			src.setMaxTokenLength(maxTokenLength);
-			TokenStream tok = new LowerCaseFilter(src);
+			TokenStream tok = new ASCIIFoldingFilter(new LowerCaseFilter(src));
 			tok = new StopFilter(tok, stopwords);
 			return new TokenStreamComponents(r -> {
 				src.setMaxTokenLength(AccentInsensitiveAnalyzer.this.maxTokenLength);

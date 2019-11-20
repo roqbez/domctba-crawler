@@ -17,11 +17,11 @@
 					<h:outputText value="Pesquisar por:" />
 					<p:inputText value="#{diarioOficialBean.params.query}" style="width: 330px" />
 				</h:panelGrid>
-				<p:commandButton value="Pesquisar" action="#{diarioOficialBean.pesquisar}" oncomplete="PF('dataTable').filter()" />
+				<p:commandButton value="Pesquisar" action="#{diarioOficialBean.pesquisar}" update="panelDataTable" />
 			</h:panelGrid>
 
 			<h:panelGrid columns="1">
-				<p:commandLink value="Obter novas edições" action="#{diarioOficialBean.verificarEdicoesDiarioOficial}" oncomplete="PF('dataTable').filter()" process="@this" />
+				<p:commandLink value="Obter novas edições" action="#{diarioOficialBean.verificarEdicoesDiarioOficial}" oncomplete="PF('dataTable').filter()" />
 			</h:panelGrid>
 
 			<h:panelGroup id="panelDataTable" layout="block" style="padding-top: 1em">
@@ -39,8 +39,8 @@
 						<h:outputText value="#{edicao.nome}" />
 					</p:column>
 
-					<p:column headerText="Download" style="width: 70px">
-						<h:commandLink action="#{diarioOficialBean.download(edicao)}" target="_new" value="download" />
+					<p:column headerText="Visualizar" style="width: 70px; text-align: center">
+						<p:commandLink ajax="false" action="#{diarioOficialBean.download(edicao.arquivo)}" target="_new" value="visualizar" />
 					</p:column>
 
 				</p:dataTable>
