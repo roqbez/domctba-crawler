@@ -39,6 +39,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser.Operator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
@@ -246,7 +247,17 @@ public class DomCtbaCrawlerService {
 		try {
 			IndexSearcher searcher = new IndexSearcher(reader);
 
-			Query q = StringUtils.isEmpty(query) ? new MatchAllDocsQuery() : new QueryParser("conteudo", luceneAnalyzer).parse(query);
+			Query q = null;
+
+			if (StringUtils.isEmpty(query)) {
+				q = new MatchAllDocsQuery();
+
+			} else {
+				QueryParser parser = new QueryParser("conteudo", luceneAnalyzer);
+				parser.setDefaultOperator(Operator.AND);
+
+				q = parser.parse(query);
+			}
 
 			TopDocs docs = searcher.search(q, Integer.MAX_VALUE);
 
