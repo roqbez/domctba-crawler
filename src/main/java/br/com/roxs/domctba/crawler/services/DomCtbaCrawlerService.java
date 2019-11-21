@@ -98,7 +98,7 @@ public class DomCtbaCrawlerService {
 		luceneAnalyzer = new AccentInsensitiveAnalyzer();
 	}
 
-	@Scheduled(cron = "0 0 18 * * *")
+	@Scheduled(cron = "0 18 * * * *")
 	public List<EdicaoDiarioOficial> verificarEdicoesDiarioOficial() throws Exception {
 		if (!verificando.get()) {
 			logger.info("Verificando novas edições do DOM");
