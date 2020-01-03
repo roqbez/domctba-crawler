@@ -124,7 +124,7 @@ public class DomCtbaCrawlerService {
 
 				List<EdicaoDiarioOficial> edicoes = new LinkedList<EdicaoDiarioOficial>();
 
-				List<Integer> meses = Arrays.asList(8, 9, 10, 11, 12);
+				List<Integer> meses = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
 				for (int mes : meses) {
 
